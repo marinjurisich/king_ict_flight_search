@@ -30,7 +30,6 @@ public class FlightService {
                             .and("departureDate", flightDTO.getDepartureDate())
                             .and("returnDate", flightDTO.getReturnDate())
                             .and("currencyCode", flightDTO.getCurrencyCode())
-                            //.and("max", 10)
                     ));
 
             for (FlightOfferSearch foundFlight : foundFlights) {
@@ -53,6 +52,7 @@ public class FlightService {
                 );
 
                 result.add(flight);
+
             }
 
         } catch (ResponseException e) {
@@ -60,5 +60,6 @@ public class FlightService {
         }
 
         return result;
+
     }
 }
