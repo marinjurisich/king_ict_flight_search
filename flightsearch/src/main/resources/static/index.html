@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <title>Flight Search</title>
 </head>
 <body>
-
     <h1 style="text-align: center; font-family: 'Roboto',sans-serif">Flight Search</h1>
 
-    <form>
+    <form name="searchForm">
         <div class="row col-md-12">
             <div class="form-group col-md-6">
                 <label for="originLocationCode">Origin Location Code:</label>
@@ -42,7 +42,12 @@
             </div>
             <div class="form-group col-md-6">
                 <label for="currencyCode">Currency:</label>
-                <input type="text" class="form-control" name="currencyCode" id="currencyCode" placeholder="USD, EUR, HRK..." required>
+                <select id="currencyCode" class="form-control" name="currencyCode" placeholder="USD, EUR, HRK..." required>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="HRK">HRK</option>
+                    <option value="GBP">GBP</option>
+                </select>
             </div>
         </div>
 
@@ -65,8 +70,88 @@
     </table>
     
     <script>
-
         let searchHistory = [];
+
+        function hasNumber(string) {
+
+            let patt = new RegExp("[0-9]");
+            return patt.test(string);
+
+        }
+
+        function isntCaps(string) {
+
+            let patt = new RegExp("[a-z]");
+            return patt.test(string);
+
+        }
+
+        function checkIATA(string) {
+
+            if (hasNumber(string)){
+                alert("IATA code cannot contain numbers!");
+                return false;
+            } else if (isntCaps(string)){
+                alert ("IATA code must be all caps!");
+                return false;
+            }
+            return true;
+
+        }
+
+        function validateForm() {
+
+            let originCode = document.forms["searchForm"]["originLocationCode"].value;
+            if (originCode == "") {
+                alert("Origin location cannot be empty!");
+                return false;
+            } else if (originCode.length != 3) {
+                alert("Origin location must be IATA code!")
+                return false;
+            } else if ( !checkIATA(originCode)) {
+                return false;
+            }
+
+            let destinationCode = document.forms["searchForm"]["destinationLocationCode"].value;
+            if (destinationCode == "") {
+                alert("Destination location cannot be empty!");
+                return false;
+            } else if (destinationCode.length != 3) {
+                alert("Destination location must be IATA code!")
+                return false;
+            } else if (checkIATA(destinationCode) == false) {
+                return false;
+            }
+
+            let departureDate = document.forms["searchForm"]["departureDate"].value;
+            if (departureDate == "") {
+                alert("Departure date cannot be empty!");
+                return false;
+            }
+
+            let returnDate = document.forms["searchForm"]["returnDate"].value;
+            if (returnDate == "") {
+                alert("Return date cannot be empty!");
+                return false;
+            }
+
+            let adults = document.forms["searchForm"]["adults"].value;
+            if (adults == "") {
+                alert("Number of passengers cannot be empty!");
+                return false;
+            } else if (adults < 1){
+                alert("Number of passengers must be greater than zero!")
+            }
+
+            let currencyCode = document.forms["searchForm"]["currencyCode"].value;
+            if (currencyCode == "") {
+                alert("Please pick a currency!");
+                return false;
+            }
+
+            return true;
+
+        }
 
         function fillTable(flightData){
 
@@ -87,56 +172,59 @@
         }
 
         function getInputValue(id){
+
             return document.getElementById(id).value;
+
         }
 
         function onSubmit(){
 
-            let flightDTO = {
-                originLocationCode: getInputValue("originLocationCode"),
-                destinationLocationCode: getInputValue("destinationLocationCode"),
-                adults: getInputValue("adults"),
-                departureDate: getInputValue("departureDate"),
-                returnDate: getInputValue("returnDate"),
-                currencyCode: getInputValue("currencyCode")
-            }
+            if (validateForm()) {
+                let flightDTO = {
+                    originLocationCode: getInputValue("originLocationCode"),
+                    destinationLocationCode: getInputValue("destinationLocationCode"),
+                    adults: getInputValue("adults"),
+                    departureDate: getInputValue("departureDate"),
+                    returnDate: getInputValue("returnDate"),
+                    currencyCode: getInputValue("currencyCode")
+                }
 
-            let alreadySearched = searchHistory
-                .find(historyItem => {
-                    for (let property in historyItem.search){
-                        if (flightDTO[property] != historyItem.search[property]){
-                            return false;
+                let alreadySearched = searchHistory
+                    .find(historyItem => {
+                        for (let property in historyItem.search){
+                            if (flightDTO[property] != historyItem.search[property]){
+                                return false;
+                            }
                         }
-                    }
-                    return true;
-                });
-
-            if(alreadySearched){
-                console.log("Already searched!")
-                fillTable(alreadySearched.result);
-            } else {
-                fetch("http://localhost:8080/flights", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": 'application/json',
-                    },
-                    body: JSON.stringify(flightDTO),
-                })
-                    .then(response => response.json())
-                    .then(flightData => {
-                        console.log("Get from server:", flightData);
-                        fillTable(flightData);
-                        searchHistory.push({
-                            search: flightDTO,
-                            result: flightData
-                        });
-                    })
-                    .catch((error) => {
-                        console.error("Error:", error);
+                        return true;
                     });
+
+                if (alreadySearched){
+                    console.log("Fetched local data!")
+                    fillTable(alreadySearched.result);
+                } else {
+                    fetch("http://localhost:8080/flights", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": 'application/json',
+                        },
+                        body: JSON.stringify(flightDTO),
+                    })
+                        .then(response => response.json())
+                        .then(flightData => {
+                            console.log("Fetched data from server!");
+                            fillTable(flightData);
+                            searchHistory.push({
+                                search: flightDTO,
+                                result: flightData
+                            });
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                        });
                 }
             }
-
+        }
     </script>
 </body>
 </html>
