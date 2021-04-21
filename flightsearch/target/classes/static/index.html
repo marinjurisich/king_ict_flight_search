@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Flight Search</title>
+</head>
+<body>
+
+    <h1 style="text-align: center; font-family: 'Roboto',sans-serif">Flight Search</h1>
+
+    <form>
+        <div class="row col-md-12">
+            <div class="form-group col-md-6">
+                <label for="originLocationCode">Origin Location Code:</label>
+                <input type="text" class="form-control" name="originLocationCode" id="originLocationCode" placeholder="Enter origin code" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="destinationLocationCode">Destination Location Code:</label>
+                <input type="text" class="form-control" name="destinationLocationCode" id="destinationLocationCode" placeholder="Enter destination code:" required>
+            </div>
+        </div>
+
+        <div class="row col-md-12">
+            <div class="form-group col-md-6">
+                <label for="departureDate">Departure Date:</label>
+                <input type="date" class="form-control" name="departureDate" id="departureDate" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="returnDate">Return Date:</label>
+                <input type="date" class="form-control" name="returnDate" id="returnDate" required>
+            </div>
+        </div>
+
+        <div class="row col-md-12">
+            <div class="form-group col-md-6">
+                <label for="adults">Number of passengers:</label>
+                <input type="number" class="form-control" name="adults" id="adults" placeholder="Enter number of passengers:" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="currencyCode">Currency:</label>
+                <input type="text" class="form-control" name="currencyCode" id="currencyCode" placeholder="USD, EUR, HRK..." required>
+            </div>
+        </div>
+
+        <input type="button" class="btn btn-primary" style="margin-bottom: 50px; margin-left: 15px" value="Search" onclick="onSubmit()">
+    </form>
+
+    <table class="table table-striped">
+        <thead class="thead-light">
+            <th>Origin Location Code</th>
+            <th>Destination Location Code</th>
+            <th>Departure Date</th>
+            <th>Return Date</th>
+            <th>Departure Transfers</th>
+            <th>Return Transfers</th>
+            <th>Number of Passengers</th>
+            <th>Currency</th>
+            <th>Price</th>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    
+    <script>
+
+        let searchHistory = [];
+
+        function fillTable(flightData){
+
+            let tableBody = document.getElementById("tableBody");
+
+            tableBody.innerHTML = "";
+
+            for (let flight of flightData){
+                let tr = document.createElement("tr");
+                for (let attribute in flight){
+                    let td = document.createElement("td");
+                    td.innerHTML = flight[attribute];
+                    tr.appendChild(td);
+                }
+                tableBody.appendChild(tr);
+            }
+
+        }
+
+        function getInputValue(id){
+            return document.getElementById(id).value;
+        }
+
+        function onSubmit(){
+
+            let flightDTO = {
+                originLocationCode: getInputValue("originLocationCode"),
+                destinationLocationCode: getInputValue("destinationLocationCode"),
+                adults: getInputValue("adults"),
+                departureDate: getInputValue("departureDate"),
+                returnDate: getInputValue("returnDate"),
+                currencyCode: getInputValue("currencyCode")
+            }
+
+            let alreadySearched = searchHistory
+                .find(historyItem => {
+                    for (let property in historyItem.search){
+                        if (flightDTO[property] != historyItem.search[property]){
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+
+            if(alreadySearched){
+                console.log("Already searched!")
+                fillTable(alreadySearched.result);
+            } else {
+                fetch("http://localhost:8080/flights", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": 'application/json',
+                    },
+                    body: JSON.stringify(flightDTO),
+                })
+                    .then(response => response.json())
+                    .then(flightData => {
+                        console.log("Get from server:", flightData);
+                        fillTable(flightData);
+                        searchHistory.push({
+                            search: flightDTO,
+                            result: flightData
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    });
+                }
+            }
+
+    </script>
+</body>
+</html>
