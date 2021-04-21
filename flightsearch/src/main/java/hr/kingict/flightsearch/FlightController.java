@@ -29,5 +29,6 @@ public class FlightController {
                     .status(HttpStatus.FOUND)
                     .body(flights);
         }
+
     }
 }
